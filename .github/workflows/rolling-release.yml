@@ -1,0 +1,42 @@
+name: "Release OverCLIrr"
+
+on:
+  release:
+    types: [edited, created]
+
+jobs:
+  release-binary:
+    name: Release Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [darwin, linux, windows]
+        goarch: ["386", amd64, arm64]
+        exclude:
+          - goarch: "386"
+            goos: darwin
+          - goarch: "arm64"
+            goos: darwin
+          - goarch: "arm64"
+            goos: windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Extract Tag Name
+        shell: bash
+        run: echo "##[set-output name=tag;]$(echo ${GITHUB_REF#refs/tags/})"
+        id: extract_tag
+      - name: Build & Release
+        uses: wangyoucao577/go-release-action@v1.17
+        with:
+          project_path: .
+          binary_name: overclirr
+          ldflags: -X "github.com/willfantom/overclirr/cmd.version=${{ steps.extract_tag.outputs.tag }}"
+          executable_compression: upx
+          sha256sum: true
+          md5sum: true
+          overwrite: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          goversion: 1.16
